@@ -9,10 +9,20 @@ public class Marker {
      * Mission 3a. The prefix function of p. pi[i] = the length of the longest proper prefix of p[0..i] that is
      * also a suffix of p[0..i] ("proper" means shorter than p[0..i] itself).
      * Example: p = "ACGAC" gives [0, 0, 0, 1, 2]. The last number is the "Border length" line.
+     *
+     * k is the length of the current border. When p[i] does not extend it, fall back to the next shorter border
+     * pi[k-1] (a border of a border is again a border). Amortised O(m): k grows by at most 1 per step.
      */
     public static int[] prefixFunction(String p) {
-        // TODO Mission 3a
-        return new int[p.length()];
+        int m = p.length();
+        int[] pi = new int[m];
+        int k = 0;
+        for (int i = 1; i < m; i++) {
+            while (k > 0 && p.charAt(i) != p.charAt(k)) k = pi[k - 1];
+            if (p.charAt(i) == p.charAt(k)) k++;
+            pi[i] = k;
+        }
+        return pi;
     }
 
     /**
@@ -20,11 +30,29 @@ public class Marker {
      * Overlapping occurrences count: "ACG" occurs in "ACGACG" at 0 and 3, and "AA" in "AAA" at 0 and 1.
      * Use the prefix function: the text pointer never goes back. The number of positions is "Marker hits",
      * the first one is "First hit" (-1 when there is none).
+     *
+     * k = how many letters of p are matched right now. i only moves forward; on a mismatch k jumps to pi[k-1].
+     * After a full match k = pi[m-1], so overlapping occurrences are found too.
      */
     public static int[] findAll(String text, String p) {
-        // TODO Mission 3b
-        return new int[0];
+        int n = text.length(), m = p.length();
+        if (m == 0 || m > n) return new int[0];
+        int[] pi = prefixFunction(p);
+        int[] found = new int[n];
+        int count = 0;
+        int k = 0;
+        for (int i = 0; i < n; i++) {
+            char c = text.charAt(i);
+            while (k > 0 && c != p.charAt(k)) k = pi[k - 1];
+            if (c == p.charAt(k)) k++;
+            if (k == m) {
+                found[count++] = i - m + 1;
+                k = pi[m - 1];
+            }
+        }
+        return Arrays.copyOf(found, count);
     }
+
 
     /**
      * Mission 4. Rabin-Karp. The number of positions i in a such that the word of k letters starting at i
@@ -38,4 +66,5 @@ public class Marker {
         // TODO Mission 4
         return -1;
     }
+
 }
