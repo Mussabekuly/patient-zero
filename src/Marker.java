@@ -53,6 +53,8 @@ public class Marker {
         return Arrays.copyOf(found, count);
     }
 
+    static final long BASE = 131;
+    static final long MOD = 1_000_000_007L;
 
     /**
      * Mission 4. Rabin-Karp. The number of positions i in a such that the word of k letters starting at i
@@ -63,8 +65,46 @@ public class Marker {
      * Example: a = "ACGTAC", b = "TTACGT", k = 4: the words of a are ACGT, CGTA, GTAC; only ACGT is in b, so the answer is 1.
      */
     public static int sharedWords(String a, String b, int k) {
-        // TODO Mission 4
-        return -1;
+        if (k <= 0 || a.length() < k || b.length() < k) return 0;
+
+        // BASE^(k-1) mod MOD: the weight of the letter that leaves the window
+        long high = 1;
+        for (int i = 0; i < k - 1; i++) high = high * BASE % MOD;
+
+        // hash of every window of b -> start positions of the windows with that hash
+        Map<Long, List<Integer>> windowsOfB = new HashMap<>();
+        long h = 0;
+        for (int i = 0; i < b.length(); i++) {
+            if (i >= k) h = roll(h, b.charAt(i - k), high);
+            h = (h * BASE + b.charAt(i)) % MOD;
+            if (i >= k - 1) windowsOfB.computeIfAbsent(h, x -> new ArrayList<>()).add(i - k + 1);
+        }
+
+        int count = 0;
+        h = 0;
+        for (int i = 0; i < a.length(); i++) {
+            if (i >= k) h = roll(h, a.charAt(i - k), high);
+            h = (h * BASE + a.charAt(i)) % MOD;
+            if (i >= k - 1) {
+                int start = i - k + 1;
+                List<Integer> candidates = windowsOfB.get(h);
+                if (candidates == null) continue;
+                for (int s : candidates) {
+                    if (sameLetters(a, start, b, s, k)) { count++; break; }
+                }
+            }
+        }
+        return count;
     }
 
+    /** Removes the letter that leaves the window. Adding MOD keeps the value non-negative. */
+    private static long roll(long h, char out, long high) {
+        return ((h - out * high % MOD) % MOD + MOD) % MOD;
+    }
+
+    /** Letter-by-letter check after equal hashes: equal hashes do not prove equal words. */
+    private static boolean sameLetters(String a, int i, String b, int j, int k) {
+        for (int t = 0; t < k; t++) if (a.charAt(i + t) != b.charAt(j + t)) return false;
+        return true;
+    }
 }
